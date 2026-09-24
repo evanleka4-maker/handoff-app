@@ -1,0 +1,26 @@
+{
+  "name": "handoff-app",
+  "version": "1.0.0",
+  "description": "Handoff — turnover operations platform for small student housing operators",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/db/seed.js && node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/db/seed.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "nanoid": "^3.3.19",
+    "pdf-lib": "^1.17.1"
+  }
+}

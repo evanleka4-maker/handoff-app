@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handoff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c222b; --paper:#f1f2f4; --surface:#ffffff; --line:#dcdfe3; --muted:#666d76;
+    --accent:#b0502e; --accent-ink:#7c3a20; --accent-soft:#f3e2da;
+    --good:#2f7d53; --good-soft:#e2efe7; --warn:#a3690f; --warn-soft:#f5e9d4;
+    --bad:#c13d3d; --bad-soft:#f6e0e0;
+    --shadow: 0 1px 2px rgba(28,34,43,.06), 0 8px 20px -12px rgba(28,34,43,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9eaec; --paper:#14171c; --surface:#1c2027; --line:#2c313a; --muted:#9aa0a8;
+      --accent:#e08159; --accent-ink:#f3b79b; --accent-soft:#3a281f;
+      --good:#5cc191; --good-soft:#1e3128; --warn:#e3ac54; --warn-soft:#382c17;
+      --bad:#e88080; --bad-soft:#3a2222;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9eaec; --paper:#14171c; --surface:#1c2027; --line:#2c313a; --muted:#9aa0a8;
+    --accent:#e08159; --accent-ink:#f3b79b; --accent-soft:#3a281f;
+    --good:#5cc191; --good-soft:#1e3128; --warn:#e3ac54; --warn-soft:#382c17;
+    --bad:#e88080; --bad-soft:#3a2222;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif; padding-inline:20px; padding-block:0 40px;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  .display{font-family:'Fraunces',Georgia,serif;}
+  .mono, .tabular{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums;}
+  button{font:inherit; cursor:pointer;}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .topbar{position:sticky; top:env(safe-area-inset-top,0px); z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding-block:18px; background:var(--paper); border-bottom:1px solid var(--line); margin-inline:-20px; padding-inline:20px;}
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand .wordmark{font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:600; font-size:1.5rem; letter-spacing:-.01em;}
+  .brand .property{color:var(--muted); font-size:.85rem;}
+  .topbar-actions{display:flex; align-items:center; gap:10px;}
+  .who-badge{color:var(--muted); font-size:.82rem;}
+
+  main{max-width:1080px; margin-inline:auto; padding-top:28px;}
+  .view{display:flex; flex-direction:column; gap:24px;}
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:var(--shadow);}
+  .card > header{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
+  .card > header h2{font-size:1.05rem; font-weight:700;}
+  .card > header .hint{color:var(--muted); font-size:.82rem;}
+
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  .stat{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;}
+  .stat .label{font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600;}
+  .stat .value{font-size:1.7rem; font-weight:600;}
+  .stat .value.accent{color:var(--accent-ink);}
+  .stat .value.bad{color:var(--bad);}
+  .stat .sub{font-size:.8rem; color:var(--muted);}
+  @media (max-width:720px){ .stats{grid-template-columns:1fr 1fr;} }
+
+  .progress-track{height:8px; border-radius:999px; background:var(--line); overflow:hidden;}
+  .progress-fill{height:100%; background:var(--good); border-radius:999px; transition:width .3s;}
+
+  .pill{display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:.75rem; font-weight:600; white-space:nowrap;}
+  .pill::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .pill.good{background:var(--good-soft); color:var(--good);}
+  .pill.warn{background:var(--warn-soft); color:var(--warn);}
+  .pill.bad{background:var(--bad-soft); color:var(--bad);}
+  .pill.neutral{background:var(--paper); color:var(--muted); border:1px solid var(--line);}
+  .chip{display:inline-block; padding:3px 9px; border-radius:7px; font-size:.72rem; font-weight:600; background:var(--accent-soft); color:var(--accent-ink);}
+
+  .rows{display:flex; flex-direction:column;}
+  .row{display:grid; grid-template-columns:1.4fr 1fr auto; gap:12px; align-items:center; padding-block:11px; border-top:1px solid var(--line);}
+  .row:first-child{border-top:none;}
+  .row .who{font-weight:600; font-size:.92rem;}
+  .row .meta{color:var(--muted); font-size:.78rem;}
+  .row .unit{color:var(--muted); font-size:.82rem;}
+
+  .ticket-row{display:grid; grid-template-columns:auto 1.3fr auto auto 1fr auto; gap:14px; align-items:center; padding-block:12px; border-top:1px solid var(--line);}
+  .ticket-row:first-child{border-top:none;}
+  .ticket-row .tid{color:var(--muted); font-size:.75rem;}
+  .ticket-row .desc{font-size:.9rem;}
+  .ticket-row .desc .unit-tag{color:var(--muted); font-size:.78rem; display:block; margin-top:2px;}
+  .ticket-row .assigned{font-size:.82rem; color:var(--muted);}
+  .ticket-row.new{animation:flashIn 1.6s ease-out;}
+  @keyframes flashIn{ from{background:var(--accent-soft);} to{background:transparent;} }
+
+  @media (max-width:720px){ .ticket-row{grid-template-columns:1fr; gap:6px;} .row{grid-template-columns:1fr; gap:4px;} }
+
+  select, textarea, input[type=text], input[type=email], input[type=password]{
+    font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+  }
+  select{padding:6px 9px; font-size:.82rem;}
+
+  .btn{border-radius:9px; border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:7px 13px; font-size:.82rem; font-weight:600; transition:background .15s;}
+  .btn:hover{background:var(--paper);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{background:var(--accent-ink); border-color:var(--accent-ink);}
+  .btn:disabled{opacity:.55; cursor:default;}
+
+  .routing-table{width:100%; border-collapse:collapse; font-size:.86rem;}
+  .routing-table th{text-align:left; color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; padding-bottom:8px;}
+  .routing-table td{padding-block:9px; border-top:1px solid var(--line);}
+  .routing-table .cat{display:flex; align-items:center; gap:8px; font-weight:600;}
+
+  .phone-wrap{display:flex; justify-content:center;}
+  .phone{width:min(420px, 100%); display:flex; flex-direction:column; gap:16px;}
+  .resident-header{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .resident-header .who .name{font-weight:700; font-size:1.05rem;}
+  .resident-header .who .unit{color:var(--muted); font-size:.82rem;}
+  .avatar{width:38px; height:38px; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0;}
+  textarea{width:100%; min-height:86px; resize:vertical; font-family:'Archivo',sans-serif; font-size:.9rem;}
+  .field-label{display:block; font-size:.78rem; font-weight:600; color:var(--muted); margin-bottom:6px;}
+  .toast{display:flex; align-items:center; gap:8px; background:var(--good-soft); color:var(--good); border-radius:9px; padding:10px 12px; font-size:.85rem; font-weight:600;}
+  .toast.error{background:var(--bad-soft); color:var(--bad);}
+  .empty{color:var(--muted); font-size:.85rem; padding-block:10px;}
+
+  footer.note{max-width:1080px; margin:32px auto 0; color:var(--muted); font-size:.78rem; text-align:center;}
+
+  /* ---------- login gate ---------- */
+  .login-wrap{max-width:420px; margin:80px auto; display:flex; flex-direction:column; gap:20px;}
+  .login-wrap .wordmark{font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:600; font-size:2rem; text-align:center;}
+  .login-tabs{display:flex; background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:3px; gap:2px;}
+  .login-tabs button{flex:1; border:none; background:transparent; color:var(--muted); padding:8px 16px; border-radius:999px; font-size:.85rem; font-weight:600;}
+  .login-tabs button[aria-selected="true"]{background:var(--accent); color:#fff;}
+  .login-form{display:flex; flex-direction:column; gap:12px;}
+  .login-form label{font-size:.82rem; font-weight:600; color:var(--muted);}
+  .demo-hint{font-size:.78rem; color:var(--muted); text-align:center;}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var API = "/api";
+  var state = { session: null, view: "operator-login" };
+
+  function qs(sel, root){ return (root||document).querySelector(sel); }
+
+  async function api(path, opts){
+    opts = opts || {};
+    var res = await fetch(API + path, Object.assign({
+      credentials: "include",
+      headers: { "Content-Type": "application/json" }
+    }, opts));
+    var data = null;
+    try { data = await res.json(); } catch(e){}
+    if(!res.ok){
+      var err = new Error((data && data.error) || ("Request failed: " + res.status));
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function urgencyPill(u){
+    if(u==="urgent") return '<span class="pill bad">Urgent</span>';
+    if(u==="high") return '<span class="pill warn">High</span>';
+    if(u==="medium") return '<span class="pill neutral">Medium</span>';
+    return '<span class="pill neutral">Low</span>';
+  }
+  function statusPill(s){
+    if(s==="resolved") return '<span class="pill good">Resolved</span>';
+    if(s==="in_progress") return '<span class="pill warn">In progress</span>';
+    return '<span class="pill neutral">Open</span>';
+  }
+  function leasePill(s){
+    if(s==="signed") return '<span class="pill good">Signed</span>';
+    if(s==="sent") return '<span class="pill warn">Sent — awaiting signature</span>';
+    return '<span class="pill neutral">Draft</span>';
+  }
+
+  // ------------------------------------------------------------------
+  // Boot: check session, then render the right screen
+  // ------------------------------------------------------------------
+  async function boot(){
+    try{
+      var data = await api("/auth/me");
+      state.session = data.session;
+    } catch(e){ state.session = null; }
+
+    if(!state.session){ renderLogin(); return; }
+    if(state.session.role === "operator"){ renderOperatorShell(); }
+    else { renderResidentShell(); }
+  }
+
+  // ------------------------------------------------------------------
+  // Login screen
+  // ------------------------------------------------------------------
+  var loginTab = "operator";
+  function renderLogin(){
+    var app = qs("#app");
+    app.innerHTML =
+      '<div class="login-wrap">'
+      + '<div class="wordmark">Handoff</div>'
+      + '<div class="login-tabs" role="tablist">'
+      +   '<button id="loginTabOperator" role="tab" aria-selected="'+(loginTab==="operator")+'">Operator</button>'
+      +   '<button id="loginTabResident" role="tab" aria-selected="'+(loginTab==="resident")+'">Resident</button>'
+      + '</div>'
+      + '<div class="card"><div id="loginFormWrap"></div></div>'
+      + '<div class="demo-hint">' + (loginTab==="operator"
+            ? "Demo login: operator@handoff.demo / handoff123"
+            : "Demo access codes: MAYA-101, DEVON-102, PRIYA-201, SAM-214") + '</div>'
+      + '</div>';
+
+    qs("#loginTabOperator").addEventListener("click", function(){ loginTab="operator"; renderLogin(); });
+    qs("#loginTabResident").addEventListener("click", function(){ loginTab="resident"; renderLogin(); });
+
+    var wrap = qs("#loginFormWrap");
+    if(loginTab === "operator"){
+      wrap.innerHTML =
+        '<form class="login-form" id="operatorLoginForm">'
+        + '<label>Email<input type="email" id="opEmail" required></label>'
+        + '<label>Password<input type="password" id="opPassword" required></label>'
+        + '<button class="btn primary" type="submit">Log in</button>'
+        + '<div id="loginError"></div>'
+        + '</form>';
+      qs("#operatorLoginForm").addEventListener("submit", async function(e){
+        e.preventDefault();
+        var err = qs("#loginError"); err.innerHTML = "";
+        try{
+          await api("/auth/operator/login", { method:"POST", body: JSON.stringify({
+            email: qs("#opEmail").value, password: qs("#opPassword").value
+          })});
+          await boot();
+        } catch(ex){
+          err.innerHTML = '<div class="toast error">'+escapeHtml(ex.message)+'</div>';
+        }
+      });
+    } else {
+      wrap.innerHTML =
+        '<form class="login-form" id="residentLoginForm">'
+        + '<label>Access code<input type="text" id="resCode" placeholder="e.g. MAYA-101" required></label>'
+        + '<button class="btn primary" type="submit">Log in</button>'
+        + '<div id="loginError"></div>'
+        + '</form>';
+      qs("#residentLoginForm").addEventListener("submit", async function(e){
+        e.preventDefault();
+        var err = qs("#loginError"); err.innerHTML = "";
+        try{
+          var loginResult = await api("/auth/resident/login", { method:"POST", body: JSON.stringify({
+            accessCode: qs("#resCode").value
+          })});
+          if(loginResult.resident){
+            sessionStorage.setItem("handoff_resident", JSON.stringify(loginResult.resident));
+          }
+          await boot();
+        } catch(ex){
+          err.innerHTML = '<div class="toast error">'+escapeHtml(ex.message)+'</div>';
+        }
+      });
+    }
+  }
+
+  async function logout(){
+    try{ await api("/auth/logout", { method:"POST" }); } catch(e){}
+    state.session = null;
+    renderLogin();
+  }
+
+  // ------------------------------------------------------------------
+  // Operator shell
+  // ------------------------------------------------------------------
+  function topbar(propertyLabel, personLabel){
+    return '<div class="topbar">'
+      + '<div class="brand"><span class="wordmark">Handoff</span><span class="property">— '+escapeHtml(propertyLabel)+'</span></div>'
+      + '<div class="topbar-actions"><span class="who-badge">'+escapeHtml(personLabel)+'</span><button class="btn" id="logoutBtn">Log out</button></div>'
+      + '</div>';
+  }
+
+  async function renderOperatorShell(){
+    var app = qs("#app");
+    app.innerHTML = topbar("Loading…", "Operator") + '<main><div class="view" id="opView"></div></main>'
+      + '<footer class="note">Handoff — free-tier build. Lease PDFs generated locally; DocuSign and SMS/email are swap-in providers for later.</footer>';
+    qs("#logoutBtn").addEventListener("click", logout);
+    await refreshOperator();
+  }
+
+  async function refreshOperator(){
+    var [propertyData, statsData, leasesData, ticketsData, routingData] = await Promise.all([
+      api("/property"), api("/property/stats"), api("/leases"), api("/tickets"), api("/tickets/routing")
+    ]);
+    var property = propertyData.property;
+
+    qs(".brand .property").textContent = "— " + property.name;
+    qs(".who-badge").textContent = state.session.role === "operator" ? "Operator" : "";
+
+    var s = statsData;
+    var view = qs("#opView");
+    view.innerHTML =
+      '<div class="stats">'
+      + statCard("Turnover window", s.turnoverDay || "—", "Fall move-in period")
+      + statCard("Leases signed", s.leaseSignedPct + "%", s.leasesSigned + " of " + s.leasesTotal + " units", "accent")
+      + statCard("Open tickets", String(s.openTickets), "")
+      + statCard("Escalated", String(s.overdueTickets), "auto-escalated", "bad")
+      + '</div>'
+      + '<div class="card"><header><h2>Lease signatures</h2><span class="hint">Auto-drafted from unit data &middot; reminders sent from here</span></header>'
+      +   '<div class="progress-track" style="margin-bottom:16px;"><div class="progress-fill" style="width:'+s.leaseSignedPct+'%"></div></div>'
+      +   '<div class="rows" id="leaseRows"></div>'
+      + '</div>'
+      + '<div class="card"><header><h2>Issue queue</h2><span class="hint">Routed automatically from resident reports</span></header>'
+      +   '<div class="rows" id="ticketRows"></div>'
+      + '</div>'
+      + '<div class="card"><header><h2>Routing rules</h2><span class="hint">Set once — new reports route here automatically</span></header>'
+      +   '<div style="overflow-x:auto;"><table class="routing-table"><thead><tr><th>Category</th><th>Routes to</th></tr></thead><tbody id="routingBody"></tbody></table></div>'
+      + '</div>'
+      + '<div class="card"><header><h2>Notifications</h2><span class="hint">In-app log — swap for SMS/email later</span></header>'
+      +   '<div class="rows" id="notifRows"></div>'
+      + '</div>';
+
+    renderLeaseRows(leasesData.leases);
+    renderTicketRows(ticketsData.tickets);
+    renderRoutingRows(routingData.rules);
+    var notifData = await api("/property/notifications");
+    renderNotifRows(notifData.notifications);
+  }
+
+  function statCard(label, value, sub, cls){
+    return '<div class="stat"><span class="label">'+escapeHtml(label)+'</span>'
+      + '<span class="value tabular'+(cls?" "+cls:"")+'">'+escapeHtml(value)+'</span>'
+      + '<span class="sub">'+escapeHtml(sub||"")+'</span></div>';
+  }
+
+  function renderLeaseRows(leases){
+    var el = qs("#leaseRows");
+    var pending = leases.filter(function(l){ return l.status !== "signed"; });
+    if(!pending.length){ el.innerHTML = '<div class="empty">Everyone\'s signed.</div>'; return; }
+    el.innerHTML = pending.map(function(l){
+      var actionBtn = l.status === "draft"
+        ? '<button class="btn" data-send="'+l.id+'">Send lease</button>'
+        : '<button class="btn" data-remind="'+l.id+'">Send reminder'+(l.reminder_count ? " ("+l.reminder_count+" sent)" : "")+'</button>';
+      return '<div class="row">'
+        + '<div><div class="who">'+escapeHtml(l.resident_name)+'</div><div class="unit">'+escapeHtml(l.unit_label)+'</div></div>'
+        + '<div class="meta">'+leasePill(l.status)+'</div>'
+        + actionBtn
+        + '</div>';
+    }).join("");
+    el.querySelectorAll("[data-send]").forEach(function(btn){
+      btn.addEventListener("click", async function(){
+        btn.disabled = true; btn.textContent = "Sending…";
+        try{ await api("/leases/"+btn.getAttribute("data-send")+"/send", { method:"POST" }); await refreshOperator(); }
+        catch(e){ btn.disabled=false; btn.textContent="Send lease"; alert(e.message); }
+      });
+    });
+    el.querySelectorAll("[data-remind]").forEach(function(btn){
+      btn.addEventListener("click", async function(){
+        btn.disabled = true;
+        try{ await api("/leases/"+btn.getAttribute("data-remind")+"/remind", { method:"POST" }); await refreshOperator(); }
+        catch(e){ btn.disabled=false; alert(e.message); }
+      });
+    });
+  }
+
+  function renderTicketRows(tickets){
+    var el = qs("#ticketRows");
+    if(!tickets.length){ el.innerHTML = '<div class="empty">No reports yet.</div>'; return; }
+    el.innerHTML = tickets.map(function(t){
+      return '<div class="ticket-row">'
+        + '<span class="tid mono">#'+t.id.slice(-6)+'</span>'
+        + '<div class="desc">'+escapeHtml(t.description)+'<span class="unit-tag">'+escapeHtml(t.unit_label)+' &middot; '+escapeHtml(t.resident_name)+'</span></div>'
+        + '<span class="chip">'+escapeHtml(t.category)+'</span>'
+        + urgencyPill(t.urgency)
+        + '<span class="assigned">'+escapeHtml(t.assignee || "Unassigned")+(t.escalated ? ' &middot; <strong style="color:var(--bad)">escalated</strong>' : '')+'</span>'
+        + (t.status === "resolved" ? statusPill(t.status)
+            : '<select data-ticket="'+t.id+'" aria-label="Update status">'
+              + '<option value="open"'+(t.status==="open"?" selected":"")+'>Open</option>'
+              + '<option value="in_progress"'+(t.status==="in_progress"?" selected":"")+'>In progress</option>'
+              + '<option value="resolved">Mark resolved</option>'
+              + '</select>')
+        + '</div>';
+    }).join("");
+    el.querySelectorAll("select[data-ticket]").forEach(function(sel){
+      sel.addEventListener("change", async function(){
+        try{ await api("/tickets/"+sel.getAttribute("data-ticket"), { method:"PATCH", body: JSON.stringify({ status: sel.value }) }); await refreshOperator(); }
+        catch(e){ alert(e.message); }
+      });
+    });
+  }
+
+  var ROUTING_CATEGORIES = ["Internet","Plumbing","HVAC","Pest","Electrical","Appliance","Safety","Other","Escalation"];
+  function renderRoutingRows(rules){
+    var byCategory = {};
+    rules.forEach(function(r){ byCategory[r.category] = r; });
+    var el = qs("#routingBody");
+    el.innerHTML = ROUTING_CATEGORIES.map(function(cat){
+      var rule = byCategory[cat];
+      return '<tr><td class="cat"><span class="chip">'+cat+'</span></td><td>'
+        + '<input type="text" data-cat="'+cat+'" value="'+escapeHtml(rule ? rule.contact_name : "")+'" placeholder="Assign a contact" style="width:100%;max-width:280px;">'
+        + '</td></tr>';
+    }).join("");
+    el.querySelectorAll("input[data-cat]").forEach(function(input){
+      var saveTimer;
+      input.addEventListener("change", async function(){
+        try{
+          await api("/tickets/routing", { method:"PUT", body: JSON.stringify({
+            category: input.getAttribute("data-cat"), contactName: input.value
+          })});
+        } catch(e){ alert(e.message); }
+      });
+    });
+  }
+
+  function renderNotifRows(notifs){
+    var el = qs("#notifRows");
+    if(!notifs.length){ el.innerHTML = '<div class="empty">No notifications yet.</div>'; return; }
+    el.innerHTML = notifs.slice(0,12).map(function(n){
+      return '<div class="row" style="grid-template-columns:1fr auto;">'
+        + '<div><div class="who">'+escapeHtml(n.subject)+'</div><div class="meta">To '+escapeHtml(n.to_label)+' &middot; '+escapeHtml(n.message)+'</div></div>'
+        + '<span class="unit mono">'+new Date(n.created_at+"Z").toLocaleString()+'</span>'
+        + '</div>';
+    }).join("");
+  }
+
+  // ------------------------------------------------------------------
+  // Resident shell
+  // ------------------------------------------------------------------
+  async function renderResidentShell(){
+    var app = qs("#app");
+    app.innerHTML = topbar("Resident portal", "Resident")
+      + '<main><div class="phone-wrap"><div class="phone" id="resView"></div></div></main>'
+      + '<footer class="note">Handoff — free-tier build. Sample data, for demonstration.</footer>';
+    qs("#logoutBtn").addEventListener("click", logout);
+    await refreshResident();
+  }
+
+  async function refreshResident(){
+    var [meData, leaseData, ticketsData] = await Promise.all([
+      api("/auth/me"), api("/leases/mine"), api("/tickets/mine")
+    ]);
+    var el = qs("#resView");
+    var initials = (meData.session ? "" : "");
+    el.innerHTML =
+      '<div class="resident-header"><div class="who"><div class="name" id="resName"></div><div class="unit" id="resUnit"></div></div><div class="avatar" id="resAvatar"></div></div>'
+      + '<div class="card" id="residentLeaseCard"></div>'
+      + '<div class="card"><header><h2>Report an issue</h2></header>'
+      +   '<label class="field-label" for="issueText">What\'s going on?</label>'
+      +   '<textarea id="issueText" placeholder="e.g. My wifi has been down since Monday and I haven\'t been able to get anyone on the phone..."></textarea>'
+      +   '<div style="display:flex; justify-content:flex-end; margin-top:10px;"><button class="btn primary" id="submitIssue">Send report</button></div>'
+      +   '<div id="issueToast" style="margin-top:12px;"></div>'
+      + '</div>'
+      + '<div class="card"><header><h2>My reports</h2></header><div class="rows" id="myTicketRows"></div></div>';
+
+    // fetch resident name/unit via a lightweight lease lookup (already scoped by session)
+    var name = leaseData.lease ? null : null;
+    // We don't have a dedicated /me/profile route; unit + name come back on login.
+    // Re-derive from sessionStorage cache set at login time as a light touch.
+    var cached = JSON.parse(sessionStorage.getItem("handoff_resident") || "null");
+    qs("#resName").textContent = cached ? cached.name : "Resident";
+    qs("#resUnit").textContent = cached ? cached.unitLabel : "";
+    qs("#resAvatar").textContent = cached ? cached.name.split(" ").map(function(p){return p[0];}).join("").slice(0,2).toUpperCase() : "";
+
+    renderResidentLease(leaseData.lease);
+    renderMyTickets(ticketsData.tickets);
+
+    qs("#submitIssue").addEventListener("click", async function(){
+      var box = qs("#issueText");
+      var text = box.value.trim();
+      if(!text) return;
+      var btn = qs("#submitIssue");
+      btn.disabled = true;
+      try{
+        var result = await api("/tickets/mine", { method:"POST", body: JSON.stringify({ description: text }) });
+        box.value = "";
+        var toast = qs("#issueToast");
+        toast.innerHTML = '<div class="toast">Reported — routed to '+escapeHtml(result.ticket.assignee || "the property manager")+' as '+escapeHtml(result.ticket.category)+(result.ticket.urgency==="urgent" ? " (flagged urgent)" : "")+'.</div>';
+        var ticketsNow = await api("/tickets/mine");
+        renderMyTickets(ticketsNow.tickets);
+        setTimeout(function(){ toast.innerHTML = ""; }, 5000);
+      } catch(e){
+        qs("#issueToast").innerHTML = '<div class="toast error">'+escapeHtml(e.message)+'</div>';
+      } finally { btn.disabled = false; }
+    });
+  }
+
+  function renderResidentLease(lease){
+    var el = qs("#residentLeaseCard");
+    if(!lease){
+      el.innerHTML = '<header><h2>My lease</h2></header><div class="empty">No lease on file yet.</div>';
+      return;
+    }
+    var body = '<header><h2>My lease</h2></header><div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">'
+      + leasePill(lease.status);
+    if(lease.status === "signed"){
+      body += '<a class="btn" href="/api/leases/mine/pdf" target="_blank" rel="noopener">View signed lease</a>';
+    } else if(lease.status === "sent"){
+      body += '<button class="btn primary" id="signLeaseBtn">Review &amp; sign</button>';
+    } else {
+      body += '<span class="hint" style="color:var(--muted); font-size:.82rem;">Not sent yet</span>';
+    }
+    body += '</div>';
+    el.innerHTML = body;
+    var signBtn = qs("#signLeaseBtn");
+    if(signBtn){
+      signBtn.addEventListener("click", async function(){
+        signBtn.disabled = true; signBtn.textContent = "Signing…";
+        try{
+          await api("/leases/mine/sign", { method: "POST" });
+          await refreshResident();
+        } catch(e){
+          signBtn.disabled = false; signBtn.textContent = "Review & sign";
+          alert(e.message);
+        }
+      });
+    }
+  }
+
+  function renderMyTickets(tickets){
+    var el = qs("#myTicketRows");
+    if(!tickets.length){ el.innerHTML = '<div class="empty">Nothing reported yet.</div>'; return; }
+    el.innerHTML = tickets.map(function(t){
+      return '<div class="row" style="grid-template-columns:1fr auto;">'
+        + '<div><div class="who">'+escapeHtml(t.description)+'</div><div class="meta">Routed to '+escapeHtml(t.assignee || "the property manager")+'</div></div>'
+        + statusPill(t.status)
+        + '</div>';
+    }).join("");
+  }
+
+  window.addEventListener("DOMContentLoaded", boot);
+})();
+</script>
+</body>
+</html>
