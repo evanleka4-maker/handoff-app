@@ -10,7 +10,7 @@
 
 const RULES = [
   { category: "Internet", urgency: "high", re: /\b(wifi|wi-fi|internet|router|modem|ethernet|network)\b/i },
-  { category: "Plumbing", re: /\b(leak|pipe|toilet|clog|drain|faucet|water damage|flooding|flood)\b/i, urgency: "high" },
+  { category: "Plumbing", re: /\b(leak\w*|pipe|toilet|clog\w*|drain|faucet|sink|water damage|flooding|flood)\b/i, urgency: "high" },
   { category: "HVAC", re: /\b(heat|heater|heating|a\/?c|air condition|hvac|thermostat|cold|freezing|no heat)\b/i, urgency: "high" },
   { category: "Pest", re: /\b(roach|bug|pest|mice|mouse|rat|ant|infestation|cockroach|spider)\b/i, urgency: "medium" },
   { category: "Electrical", re: /\b(outlet|electrical|power|breaker|wiring|light(s)? (won'?t|not) work|sparking)\b/i, urgency: "high" },

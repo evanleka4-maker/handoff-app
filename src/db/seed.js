@@ -8,7 +8,8 @@ const repo = require("./repo");
 async function seed() {
   const existing = repo.getOperatorByEmail("operator@handoff.demo");
   if (existing) {
-    console.log("Demo data already seeded (operator@handoff.demo exists). Skipping.");
+    console.log("Demo data already seeded (operator@handoff.demo exists).");
+    await require("./demo").ensureScale(existing.property_id);
     return;
   }
 
@@ -40,49 +41,7 @@ async function seed() {
   ];
   routing.forEach((r) => repo.upsertRoutingRule({ propertyId: property.id, ...r }));
 
-  const demoResidents = [
-    { unitLabel: "Unit 101", residentName: "Maya Chen", code: "MAYA-101", rent: 725, signed: true },
-    { unitLabel: "Unit 102", residentName: "Devon Ruiz", code: "DEVON-102", rent: 725, signed: false },
-    { unitLabel: "Unit 201", residentName: "Priya Patel", code: "PRIYA-201", rent: 799, signed: false },
-    { unitLabel: "Unit 214", residentName: "Sam Okafor", code: "SAM-214", rent: 799, signed: true },
-  ];
-
-  for (const d of demoResidents) {
-    const unit = repo.createUnit({ propertyId: property.id, label: d.unitLabel, bedCount: 1 });
-    const resident = repo.createResident({ unitId: unit.id, name: d.residentName, accessCode: d.code });
-    const lease = repo.createLease({
-      unitId: unit.id,
-      residentId: resident.id,
-      monthlyRent: d.rent,
-      termStart: "2026-08-01",
-      termEnd: "2027-07-31",
-    });
-    if (d.signed) {
-      repo.updateLease(lease.id, {
-        status: "signed",
-        sent_at: new Date().toISOString(),
-        signed_at: new Date().toISOString(),
-      });
-    } else {
-      repo.updateLease(lease.id, { status: "sent", sent_at: new Date().toISOString() });
-    }
-
-    if (d.unitLabel === "Unit 214") {
-      const classifier = require("../providers/classifier");
-      const desc = "Wifi has been down in my room since Saturday, router lights are all red.";
-      const { category, urgency } = classifier.classify(desc);
-      const contact = repo.getRoutingContact(property.id, category);
-      repo.createTicket({
-        propertyId: property.id,
-        unitId: unit.id,
-        residentId: resident.id,
-        description: desc,
-        category,
-        urgency,
-        assignee: contact ? contact.contact_name : null,
-      });
-    }
-  }
+  await require("./demo").resetDemoFull(property.id);
 
   console.log("Seeded demo property 'Riverbend Commons'.");
   console.log("Operator login: operator@handoff.demo / handoff123");

@@ -2,6 +2,7 @@ const express = require("express");
 const repo = require("../db/repo");
 const classifier = require("../providers/classifier");
 const notify = require("../providers/notify");
+const readiness = require("../db/readiness");
 const { requireOperator, requireResident } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,6 +35,10 @@ router.patch("/:id", requireOperator, async (req, res) => {
   const updated = repo.updateTicket(ticket.id, fields);
   if (status && status !== ticket.status) {
     repo.addTicketEvent(ticket.id, "status_change", `Status changed to ${status}`);
+    if (status === "resolved") {
+      const unit = repo.getUnit(ticket.unit_id);
+      readiness.logEvent(ticket.property_id, ticket.unit_id, `${unit.label}: ${ticket.category} ticket resolved, block lifted`);
+    }
   }
   if (assignee !== undefined && assignee !== ticket.assignee) {
     repo.addTicketEvent(ticket.id, "note", `Assigned to ${assignee || "unassigned"}`);
@@ -97,6 +102,9 @@ router.post("/mine", requireResident, async (req, res) => {
   } else {
     repo.addTicketEvent(ticket.id, "note", "No routing rule set for this category — needs manual assignment");
   }
+
+  const unitRow = repo.getUnit(req.session.unitId);
+  readiness.logEvent(req.session.propertyId, req.session.unitId, `${unitRow.label}: new ${category} ticket from resident, unit marked blocked`);
 
   res.status(201).json({ ticket });
 });

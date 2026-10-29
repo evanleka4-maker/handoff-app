@@ -131,6 +131,50 @@
   .login-form{display:flex; flex-direction:column; gap:12px;}
   .login-form label{font-size:.82rem; font-weight:600; color:var(--muted);}
   .demo-hint{font-size:.78rem; color:var(--muted); text-align:center;}
+
+  /* ---------- readiness board ---------- */
+  .synthetic{display:inline-flex; align-items:center; gap:8px; font-size:.76rem; font-weight:600; color:var(--warn); background:var(--warn-soft); border-radius:8px; padding:5px 10px; margin-bottom:14px;}
+  .rd-top{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:12px;}
+  .rd-big{font-size:2.6rem; font-weight:600; line-height:1;}
+  .rd-big small{font-size:1rem; color:var(--muted); font-weight:500; margin-left:6px; font-family:'Archivo',sans-serif;}
+  .rd-sub{color:var(--muted); font-size:.82rem; margin-top:6px;}
+  .rd-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:.8rem; color:var(--muted);}
+  .rd-legend b{color:var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:600;}
+  .rd-legend .dot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px;}
+  .rd-bar{display:flex; gap:2px; height:12px; border-radius:999px; overflow:hidden; background:var(--line); margin-bottom:16px;}
+  .rd-bar span{display:block; height:100%; transition:flex .3s;}
+  .c-ready{background:var(--good);} .c-progress{background:#8d96a3;} .c-reclean{background:var(--warn);} .c-blocked{background:var(--bad);}
+  .rd-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .rd-filters .btn[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .rd-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px;}
+  .rd-tile{border:1.5px solid var(--line); background:var(--surface); border-radius:10px; padding:9px 9px 8px; text-align:left; display:flex; flex-direction:column; gap:7px; color:var(--ink); transition:transform .12s;}
+  .rd-tile:hover{transform:translateY(-1px);}
+  .rd-tile .n{font-weight:700; font-size:.95rem;}
+  .rd-tile .s{font-size:.7rem; font-weight:600; color:var(--muted);}
+  .rd-tile .pips{display:flex; gap:3px;}
+  .rd-tile .pip{flex:1; height:5px; border-radius:3px; background:var(--line);}
+  .rd-tile .pip.on{background:var(--good);}
+  .rd-tile.st-ready{background:var(--good-soft); border-color:var(--good);} .rd-tile.st-ready .s{color:var(--good);}
+  .rd-tile.st-reclean{background:var(--warn-soft); border-color:var(--warn);} .rd-tile.st-reclean .s{color:var(--warn);}
+  .rd-tile.st-blocked{background:var(--bad-soft); border-color:var(--bad);} .rd-tile.st-blocked .s{color:var(--bad);}
+  .rd-tile[aria-pressed="true"]{outline:2px solid var(--accent); outline-offset:2px;}
+  .rd-lower{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px;}
+  @media (max-width:760px){ .rd-lower{grid-template-columns:1fr;} }
+  .rd-panel{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--paper); min-width:0;}
+  .rd-panel h3{font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:700; margin-bottom:10px;}
+  .rd-dhead{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px;}
+  .rd-dtitle{font-size:1.2rem; font-weight:700;} .rd-dsub{color:var(--muted); font-size:.82rem;}
+  .rd-reason{margin:4px 0 12px; font-size:.88rem;}
+  .rd-check{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding-block:9px; border-top:1px solid var(--line);}
+  .rd-box{width:22px; height:22px; border-radius:6px; border:1.5px solid var(--line); display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; color:#fff; background:var(--surface);}
+  .rd-box.on{background:var(--good); border-color:var(--good);}
+  .rd-clabel{display:flex; flex-direction:column; font-size:.88rem; min-width:0;} .rd-clabel span{color:var(--muted); font-size:.76rem;}
+  .rd-actions{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;}
+  .btn.warnbtn{color:var(--warn); border-color:var(--warn);}
+  .rd-fail{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;} .rd-fail input{flex:1; min-width:180px;}
+  .rd-feed{display:flex; flex-direction:column;} .rd-feed div{padding-block:8px; border-top:1px solid var(--line); font-size:.82rem;} .rd-feed div:first-child{border-top:none;}
+  .rd-feed time{display:block; color:var(--muted); font-size:.72rem; font-family:'IBM Plex Mono',monospace;}
+  .rd-foot{display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; color:var(--muted); font-size:.76rem;}
 </style>
 </head>
 <body>
@@ -268,6 +312,7 @@
   }
 
   async function logout(){
+    if(state.poll){ clearInterval(state.poll); state.poll = null; }
     try{ await api("/auth/logout", { method:"POST" }); } catch(e){}
     state.session = null;
     renderLogin();
@@ -292,8 +337,8 @@
   }
 
   async function refreshOperator(){
-    var [propertyData, statsData, leasesData, ticketsData, routingData] = await Promise.all([
-      api("/property"), api("/property/stats"), api("/leases"), api("/tickets"), api("/tickets/routing")
+    var [propertyData, statsData, leasesData, ticketsData, routingData, readyData] = await Promise.all([
+      api("/property"), api("/property/stats"), api("/leases"), api("/tickets"), api("/tickets/routing"), api("/readiness")
     ]);
     var property = propertyData.property;
 
@@ -303,12 +348,8 @@
     var s = statsData;
     var view = qs("#opView");
     view.innerHTML =
-      '<div class="stats">'
-      + statCard("Turnover window", s.turnoverDay || "—", "Fall move-in period")
-      + statCard("Leases signed", s.leaseSignedPct + "%", s.leasesSigned + " of " + s.leasesTotal + " units", "accent")
-      + statCard("Open tickets", String(s.openTickets), "")
-      + statCard("Escalated", String(s.overdueTickets), "auto-escalated", "bad")
-      + '</div>'
+      '<div class="stats">' + statsInner(s) + '</div>'
+      + '<div class="card" id="readyCard"></div>'
       + '<div class="card"><header><h2>Lease signatures</h2><span class="hint">Auto-drafted from unit data &middot; reminders sent from here</span></header>'
       +   '<div class="progress-track" style="margin-bottom:16px;"><div class="progress-fill" style="width:'+s.leaseSignedPct+'%"></div></div>'
       +   '<div class="rows" id="leaseRows"></div>'
@@ -323,11 +364,20 @@
       +   '<div class="rows" id="notifRows"></div>'
       + '</div>';
 
+    renderReadiness(readyData);
+    if(!state.poll){ state.poll = setInterval(refreshLive, 4000); }
     renderLeaseRows(leasesData.leases);
     renderTicketRows(ticketsData.tickets);
     renderRoutingRows(routingData.rules);
     var notifData = await api("/property/notifications");
     renderNotifRows(notifData.notifications);
+  }
+
+  function statsInner(s){
+    return statCard("Move-in week", s.turnoverDay || "—", "Synthetic demo window")
+      + statCard("Leases signed", s.leaseSignedPct + "%", s.leasesSigned + " of " + s.leasesTotal + " units", "accent")
+      + statCard("Open tickets", String(s.openTickets), "")
+      + statCard("Escalated", String(s.overdueTickets), "auto-escalated", "bad");
   }
 
   function statCard(label, value, sub, cls){
@@ -429,6 +479,173 @@
   // ------------------------------------------------------------------
   // Resident shell
   // ------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  // Unit readiness board
+  // ------------------------------------------------------------------
+  var readyUI = { selected: null, filter: "all", failOpen: false, msg: "", resetArmed: false };
+  var STATUS_META = {
+    ready:    { label: "Ready",       cls: "good" },
+    progress: { label: "In progress", cls: "neutral" },
+    reclean:  { label: "Re-clean",    cls: "warn" },
+    blocked:  { label: "Blocked",     cls: "bad" }
+  };
+
+  function ago(ts){
+    if(!ts) return "";
+    var t = new Date(String(ts).replace(" ", "T") + "Z");
+    var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    if(m < 1) return "just now";
+    if(m < 60) return m + "m ago";
+    var h = Math.round(m / 60);
+    if(h < 48) return h + "h ago";
+    return Math.round(h / 24) + "d ago";
+  }
+
+  function tileSub(u){
+    if(u.status === "ready") return "Ready";
+    if(u.status === "reclean") return "Re-clean";
+    if(u.status === "blocked") return "Blocked";
+    var done = (u.checks.cleaned.done?1:0) + (u.checks.maintenance.done?1:0) + (u.checks.inspected.done?1:0) + ((u.lease && u.lease.status==="signed")?1:0);
+    return done + " of 4";
+  }
+
+  function detailHtml(u){
+    var m = STATUS_META[u.status];
+    var h = '<div class="rd-dhead"><div><div class="rd-dtitle">'+escapeHtml(u.label)+'</div><div class="rd-dsub">'
+      + (u.lease ? escapeHtml(u.lease.resident) : "Vacant") + '</div></div><span class="pill '+m.cls+'">'+m.label+'</span></div>'
+      + '<p class="rd-reason">'+escapeHtml(u.reason)+'</p>';
+    var rows = [["cleaned","Cleaned"],["maintenance","Maintenance cleared"],["inspected","Passed inspection"]];
+    rows.forEach(function(r){
+      var c = u.checks[r[0]];
+      var canDo = r[0] !== "inspected" || (u.checks.cleaned.done && u.checks.maintenance.done);
+      var actions = c.done
+        ? '<button class="btn" data-act="undo" data-key="'+r[0]+'">Undo</button>'
+        : '<button class="btn primary" data-act="do" data-key="'+r[0]+'"'+(canDo?"":" disabled")+'>Mark done</button>';
+      if(r[0] === "inspected" && canDo){
+        actions = '<button class="btn warnbtn" data-act="failopen">Fail inspection</button>' + actions;
+      }
+      h += '<div class="rd-check"><span class="rd-box'+(c.done?" on":"")+'" aria-hidden="true">'+(c.done?"&#10003;":"")+'</span>'
+        + '<div class="rd-clabel"><strong>'+r[1]+'</strong><span>'+(c.done ? escapeHtml(c.by||"")+" &middot; "+ago(c.at) : (r[0]==="inspected" && !canDo ? "Needs cleaning and maintenance first" : "Not done yet"))+'</span></div>'
+        + '<div class="rd-actions">'+actions+'</div></div>';
+    });
+    var leaseOk = u.lease && u.lease.status === "signed";
+    h += '<div class="rd-check"><span class="rd-box'+(leaseOk?" on":"")+'" aria-hidden="true">'+(leaseOk?"&#10003;":"")+'</span>'
+      + '<div class="rd-clabel"><strong>Lease signed</strong><span>'+(leaseOk?"Signed by resident":(u.lease?"Sent, awaiting signature":"No lease"))+'</span></div><div></div></div>';
+    if(u.tickets.length){
+      h += '<div class="rd-check" style="grid-template-columns:1fr;"><div class="rd-clabel"><strong>Open resident tickets</strong>'
+        + u.tickets.map(function(t){ return '<span>'+escapeHtml(t.category)+' &middot; '+escapeHtml(t.description)+'</span>'; }).join("")
+        + '</div></div>';
+    }
+    if(readyUI.failOpen){
+      h += '<div class="rd-fail"><input type="text" id="failNote" placeholder="What failed? e.g. oven not cleaned"><button class="btn warnbtn" data-act="failgo">Send back to cleaning</button><button class="btn" data-act="failcancel">Cancel</button></div>';
+    }
+    if(readyUI.msg){ h += '<div class="toast error" style="margin-top:10px;">'+escapeHtml(readyUI.msg)+'</div>'; }
+    return h;
+  }
+
+  function renderReadiness(data){
+    if(data) state.ready = data;
+    data = state.ready;
+    var el = qs("#readyCard");
+    if(!el || !data) return;
+    var s = data.summary, total = s.total || 1;
+    var filters = [["all","All ("+s.total+")"],["notready","Not ready ("+(s.total-s.ready)+")"],["reclean","Re-clean ("+s.reclean+")"],["blocked","Blocked ("+s.blocked+")"]];
+    var units = data.units.filter(function(u){
+      if(readyUI.filter === "all") return true;
+      if(readyUI.filter === "notready") return u.status !== "ready";
+      return u.status === readyUI.filter;
+    });
+    var sel = data.units.filter(function(u){ return u.id === readyUI.selected; })[0] || null;
+
+    var h = '<div class="synthetic">Synthetic demo data: every unit, resident and ticket here is invented for this demonstration.</div>'
+      + '<div class="rd-top"><div><div class="rd-big tabular">'+s.ready+'<small>of '+s.total+' units ready for move-in</small></div>'
+      + '<div class="rd-sub">One answer for cleaning, maintenance and leasing. Updates every few seconds.</div></div>'
+      + '<div class="rd-legend">'
+      + '<span><i class="dot c-ready"></i><b>'+s.ready+'</b> ready</span>'
+      + '<span><i class="dot c-progress"></i><b>'+s.progress+'</b> in progress</span>'
+      + '<span><i class="dot c-reclean"></i><b>'+s.reclean+'</b> re-clean</span>'
+      + '<span><i class="dot c-blocked"></i><b>'+s.blocked+'</b> blocked</span></div></div>'
+      + '<div class="rd-bar" role="img" aria-label="'+s.ready+' ready, '+s.progress+' in progress, '+s.reclean+' re-clean, '+s.blocked+' blocked">'
+      + ["ready","progress","reclean","blocked"].map(function(k){ return s[k] ? '<span class="c-'+k+'" style="flex:'+s[k]+'"></span>' : ""; }).join("")
+      + '</div>'
+      + '<div class="rd-filters">' + filters.map(function(f){ return '<button class="btn" data-filter="'+f[0]+'" aria-pressed="'+(readyUI.filter===f[0])+'">'+f[1]+'</button>'; }).join("") + '</div>'
+      + '<div class="rd-grid">' + (units.length ? units.map(function(u){
+          var pips = [u.checks.cleaned.done, u.checks.maintenance.done, u.checks.inspected.done, !!(u.lease && u.lease.status==="signed")];
+          return '<button class="rd-tile st-'+u.status+'" data-unit="'+u.id+'" aria-pressed="'+(u.id===readyUI.selected)+'" aria-label="'+escapeHtml(u.label)+', '+STATUS_META[u.status].label+'">'
+            + '<span class="n">'+escapeHtml(u.label.replace("Unit ",""))+'</span><span class="s">'+tileSub(u)+'</span>'
+            + '<span class="pips">'+pips.map(function(p){ return '<i class="pip'+(p?" on":"")+'"></i>'; }).join("")+'</span></button>';
+        }).join("") : '<div class="empty">Nothing in this view.</div>') + '</div>'
+      + '<div class="rd-lower"><div class="rd-panel"><h3>Unit detail</h3>'
+      + (sel ? detailHtml(sel) : '<div class="empty">Select a unit to see what is left and who owns it. The four bars on each tile are cleaned, maintenance, inspection and lease.</div>')
+      + '</div><div class="rd-panel"><h3>Live activity</h3><div class="rd-feed">'
+      + (data.events.length ? data.events.map(function(e){ return '<div>'+escapeHtml(e.text)+'<time>'+ago(e.created_at)+'</time></div>'; }).join("") : '<div class="empty">Nothing yet.</div>')
+      + '</div></div></div>'
+      + '<div class="rd-foot"><span>Ready means cleaned, cleared by maintenance, inspected, lease signed and no open ticket.</span>'
+      + '<button class="btn" id="resetDemoBtn">'+(readyUI.resetArmed ? "Click again to reset demo data" : "Reset demo data")+'</button></div>';
+    el.innerHTML = '<header><h2>Move-in readiness</h2><span class="hint">Which units can a new resident actually move into today</span></header>' + h;
+
+    el.querySelectorAll("[data-filter]").forEach(function(b){
+      b.addEventListener("click", function(){ readyUI.filter = b.getAttribute("data-filter"); renderReadiness(); });
+    });
+    el.querySelectorAll("[data-unit]").forEach(function(b){
+      b.addEventListener("click", function(){ readyUI.selected = b.getAttribute("data-unit"); readyUI.failOpen = false; readyUI.msg = ""; renderReadiness(); });
+    });
+    el.querySelectorAll("[data-act]").forEach(function(b){
+      b.addEventListener("click", function(){ readyAct(sel, b.getAttribute("data-act"), b.getAttribute("data-key")); });
+    });
+    var rb = qs("#resetDemoBtn");
+    if(rb) rb.addEventListener("click", resetDemo);
+    var fn = qs("#failNote");
+    if(fn){ fn.focus(); fn.addEventListener("keydown", function(e){ if(e.key === "Enter"){ readyAct(sel, "failgo"); } }); }
+  }
+
+  async function readyAct(unit, act, key){
+    if(!unit) return;
+    try{
+      var data;
+      if(act === "failopen"){ readyUI.failOpen = true; readyUI.msg = ""; renderReadiness(); return; }
+      if(act === "failcancel"){ readyUI.failOpen = false; renderReadiness(); return; }
+      if(act === "failgo"){
+        var note = (qs("#failNote") && qs("#failNote").value) || "";
+        data = await api("/readiness/"+unit.id+"/fail-inspection", { method:"POST", body: JSON.stringify({ note: note }) });
+      } else {
+        data = await api("/readiness/"+unit.id+"/check", { method:"POST", body: JSON.stringify({ key: key, done: act === "do" }) });
+      }
+      readyUI.failOpen = false; readyUI.msg = "";
+      renderReadiness(data);
+      refreshOperator();
+    } catch(e){
+      readyUI.msg = e.message; renderReadiness();
+    }
+  }
+
+  async function resetDemo(){
+    if(!readyUI.resetArmed){
+      readyUI.resetArmed = true; renderReadiness();
+      setTimeout(function(){ if(readyUI.resetArmed){ readyUI.resetArmed = false; renderReadiness(); } }, 4000);
+      return;
+    }
+    readyUI.resetArmed = false;
+    try{
+      await api("/readiness/demo/reset", { method:"POST" });
+      readyUI.selected = null; readyUI.failOpen = false; readyUI.filter = "all";
+      await refreshOperator();
+    } catch(e){ readyUI.msg = e.message; renderReadiness(); }
+  }
+
+  // Keep the operator screen live: a resident's report shows up without a refresh.
+  async function refreshLive(){
+    if(!state.session || state.session.role !== "operator" || document.hidden) return;
+    var a = document.activeElement;
+    if(a && (a.tagName === "INPUT" || a.tagName === "SELECT" || a.tagName === "TEXTAREA")) return;
+    try{
+      var r = await Promise.all([api("/readiness"), api("/tickets"), api("/property/stats")]);
+      renderReadiness(r[0]);
+      if(qs("#ticketRows")) renderTicketRows(r[1].tickets);
+      if(qs(".stats")) qs(".stats").innerHTML = statsInner(r[2]);
+    } catch(e){}
+  }
+
   async function renderResidentShell(){
     var app = qs("#app");
     app.innerHTML = topbar("Resident portal", "Resident")
@@ -439,14 +656,15 @@
   }
 
   async function refreshResident(){
-    var [meData, leaseData, ticketsData] = await Promise.all([
-      api("/auth/me"), api("/leases/mine"), api("/tickets/mine")
+    var [meData, leaseData, ticketsData, readyMine] = await Promise.all([
+      api("/auth/me"), api("/leases/mine"), api("/tickets/mine"), api("/readiness/mine").catch(function(){ return null; })
     ]);
     var el = qs("#resView");
     var initials = (meData.session ? "" : "");
     el.innerHTML =
       '<div class="resident-header"><div class="who"><div class="name" id="resName"></div><div class="unit" id="resUnit"></div></div><div class="avatar" id="resAvatar"></div></div>'
       + '<div class="card" id="residentLeaseCard"></div>'
+      + '<div class="card" id="residentReadyCard"></div>'
       + '<div class="card"><header><h2>Report an issue</h2></header>'
       +   '<label class="field-label" for="issueText">What\'s going on?</label>'
       +   '<textarea id="issueText" placeholder="e.g. My wifi has been down since Monday and I haven\'t been able to get anyone on the phone..."></textarea>'
@@ -465,6 +683,7 @@
     qs("#resAvatar").textContent = cached ? cached.name.split(" ").map(function(p){return p[0];}).join("").slice(0,2).toUpperCase() : "";
 
     renderResidentLease(leaseData.lease);
+    renderResidentReady(readyMine);
     renderMyTickets(ticketsData.tickets);
 
     qs("#submitIssue").addEventListener("click", async function(){
@@ -480,11 +699,26 @@
         toast.innerHTML = '<div class="toast">Reported — routed to '+escapeHtml(result.ticket.assignee || "the property manager")+' as '+escapeHtml(result.ticket.category)+(result.ticket.urgency==="urgent" ? " (flagged urgent)" : "")+'.</div>';
         var ticketsNow = await api("/tickets/mine");
         renderMyTickets(ticketsNow.tickets);
+        api("/readiness/mine").then(renderResidentReady).catch(function(){});
         setTimeout(function(){ toast.innerHTML = ""; }, 5000);
       } catch(e){
         qs("#issueToast").innerHTML = '<div class="toast error">'+escapeHtml(e.message)+'</div>';
       } finally { btn.disabled = false; }
     });
+  }
+
+  function renderResidentReady(r){
+    var el = qs("#residentReadyCard");
+    if(!el) return;
+    if(!r){ el.innerHTML = ""; el.style.display = "none"; return; }
+    el.style.display = "";
+    var m = STATUS_META[r.status] || STATUS_META.progress;
+    el.innerHTML = '<header><h2>Move-in status</h2><span class="pill '+m.cls+'">'+m.label+'</span></header>'
+      + '<p style="margin:0 0 10px; font-size:.92rem;">'+escapeHtml(r.message)+'</p>'
+      + r.steps.map(function(st){
+          return '<div class="rd-check"><span class="rd-box'+(st.done?" on":"")+'" aria-hidden="true">'+(st.done?"&#10003;":"")+'</span>'
+            + '<div class="rd-clabel"><strong>'+escapeHtml(st.label)+'</strong></div><span class="meta" style="color:var(--muted);font-size:.76rem;">'+(st.done?"Done":"Pending")+'</span></div>';
+        }).join("");
   }
 
   function renderResidentLease(lease){

@@ -123,6 +123,32 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 `);
 
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS unit_checks (
+  unit_id TEXT NOT NULL REFERENCES units(id),
+  check_key TEXT NOT NULL, -- cleaned | maintenance | inspected
+  done INTEGER NOT NULL DEFAULT 0,
+  done_by TEXT,
+  done_at TEXT,
+  PRIMARY KEY (unit_id, check_key)
+);
+
+CREATE TABLE IF NOT EXISTS unit_flags (
+  unit_id TEXT PRIMARY KEY REFERENCES units(id),
+  note TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS readiness_events (
+  id TEXT PRIMARY KEY,
+  property_id TEXT NOT NULL REFERENCES properties(id),
+  unit_id TEXT,
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`);
+
 function id(prefix) {
   return `${prefix}_${nanoid(12)}`;
 }

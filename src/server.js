@@ -11,6 +11,7 @@ const authRoutes = require("./routes/auth");
 const leaseRoutes = require("./routes/leases");
 const ticketRoutes = require("./routes/tickets");
 const propertyRoutes = require("./routes/property");
+const readinessRoutes = require("./routes/readiness");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/leases", leaseRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/property", propertyRoutes);
+app.use("/api/readiness", readinessRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
