@@ -2,7 +2,7 @@
 
 **One live board that answers "is this unit ready for move-in?"**
 
-[Watch the 1-minute demo video](PASTE-UNLISTED-YOUTUBE-LINK-HERE) · [Try the live prototype](https://handoff-app-production-6ee2.up.railway.app) · Built for ENTR 5000, University of Georgia
+[Watch the 1-minute demo video](https://youtu.be/kwUmdrw1GMs) · [Try the live prototype](https://handoff-app-production-6ee2.up.railway.app) · Built for ENTR 5000, University of Georgia
 
 ![Handoff readiness board](docs/screenshots/1-readiness-board.png)
 
